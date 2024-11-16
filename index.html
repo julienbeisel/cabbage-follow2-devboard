@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+            overflow: hidden;
+        }
+
+        .canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            border: 3px solid green;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar" style="width:0px;height:0px">
+    </div>
+    <div id="scrollingWaveform" href="#scrollingWaveform">
+        <div style="width:550px">
+            <div>
+                <canvas class="canvas" id="baseWaveformCanvas" width="550" height="150"
+                    style="border:1px solid grey"></canvas>
+                <canvas class="canvas" id="waveformCanvas" width="550" height="150"
+                    style="border:1px solid grey"></canvas>
+                <canvas class="canvas" id="enveloppeFast" width="550" height="150"
+                    style="border:1px solid grey"></canvas>
+                <canvas class="canvas" id="enveloppeSlow" width="550" height="150"
+                    style="border:1px solid grey"></canvas>
+
+            </div>
+        </div>
+        <script>
+            var header = document.getElementsByClassName("sidebar");
+            var links = header[0].getElementsByClassName("navLink");
+
+            let mouseDown = 0;
+            let cabbage = new Cabbage();
+
+            cabbage.addListener("webUIDrawScrollingWaveform", (data) => {
+                drawWaveform(data);
+            });
+
+            cabbage.addListener("webUIDrawScrollingWaveformEnv", (data) => {
+                drawEnveloppe(data);
+            });
+            cabbage.addListener("webUIDrawScrollingWaveformEnvFast", (data) => {
+                drawEnveloppeFast(data);
+            });
+            cabbage.addListener("webUIDrawScrollingWaveformEnvSlow", (data) => {
+                drawEnveloppeSlow(data);
+            });
+            //===========================================================================
+            function remap(value, from1, to1, from2, to2, clamp = false) {
+                return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+            }
+
+            //console.clear(); 
+            let width = 550;
+            let height = 150;
+            let sizeArray = 8000
+            var audioSamples = new Array(sizeArray).fill(0);
+            var enveloppeSamples = new Array(sizeArray).fill(0);
+            var enveloppeFastArray = new Array(sizeArray).fill(0);
+            var enveloppeSlowArray = new Array(sizeArray).fill(0);
+            let baseWaveformCanvas = document.getElementById("baseWaveformCanvas");
+            let waveformCanvas = document.getElementById("waveformCanvas");
+            let enveloppeFast = document.getElementById("enveloppeFast");
+            let enveloppeSlow = document.getElementById("enveloppeSlow");
+
+            let level = 0;
+
+            function drawWaveform(sampleArray) {
+                if (baseWaveformCanvas !== null) {
+                    let ctx = baseWaveformCanvas.getContext("2d");
+                    ctx.strokeStyle = '#0478aa';
+                    //ctx.fillStyle = '#303030';
+                    //ctx.fillRect(0, 0, width, height);
+                    //var level = sampleAmp;
+                    // add new level to end of array
+                    audioSamples.push(...sampleArray);
+                    // remove first item in array
+                    audioSamples.splice(0, sampleArray.length);
+
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.fillStyle = '#303030';
+                    //ctx.fillRect(0, 0, width, height);
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, height / 2);
+                    // loop through all the previous levels
+                    for (i = 0; i < audioSamples.length; i++) {
+                        x = ((i * width) / audioSamples.length);
+                        y = ((audioSamples[i] * height / 2) + height / 2);
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+
+            function drawEnveloppe(sampleArray) {
+                if (waveformCanvas !== null) {
+                    let ctx = waveformCanvas.getContext("2d");
+                    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                    enveloppeSamples.push(...sampleArray);
+                    enveloppeSamples.splice(0, sampleArray.length);
+
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.beginPath();
+                    ctx.moveTo(0, height / 2);
+                    for (i = 0; i < enveloppeSamples.length; i++) {
+                        x = ((i * width) / enveloppeSamples.length);
+                        y = ((enveloppeSamples[i] * height / 2) + height / 2);
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+            function drawEnveloppeFast(sampleArray) {
+                if (enveloppeFast !== null) {
+                    let ctx = enveloppeFast.getContext("2d");
+                    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                    enveloppeFastArray.push(...sampleArray);
+                    enveloppeFastArray.splice(0, sampleArray.length);
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.beginPath();
+                    ctx.moveTo(0, height / 2);
+                    for (i = 0; i < enveloppeFastArray.length; i++) {
+                        x = ((i * width) / enveloppeFastArray.length);
+                        y = height - ((enveloppeFastArray[i] * height / 2) + height / 2);
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+            function drawEnveloppeSlow(sampleArray) {
+                if (enveloppeFast !== null) {
+                    let ctx = enveloppeSlow.getContext("2d");
+                    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                    enveloppeSlowArray.push(...sampleArray);
+                    enveloppeSlowArray.splice(0, sampleArray.length);
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.beginPath();
+                    ctx.moveTo(0, height / 2);
+                    for (i = 0; i < enveloppeSlowArray.length; i++) {
+                        x = ((i * width) / enveloppeSlowArray.length);
+                        y = height - ((enveloppeSlowArray[i] * height / 2) + height / 2);
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+            }
+
+        </script>
+
+</body>
+
+</html>
